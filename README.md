@@ -7,11 +7,31 @@ Quick hack to deploy Grafana in Docker Swarm.
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
 
-    - hosts: servers
+
+    # Tasks that only need to be executed on a single swarm node
+
+    - name: Deploy containers on swarm
+      hosts: docker_swarm_deploytarget
+      become: yes
+
+      # These tasks, is added in order to pull a local Grafana build.
+      tasks:
+        - name: Log into private registry and force re-authorization
+          community.general.docker_login:
+            registry_url: "registry.foobar.local"
+            username: "grafana_pull_account"
+            password: "{{ grafana_registry_access_token }}"
+            reauthorize: yes
+
+        - name: Pull an image
+          community.docker.docker_image:
+            name: "{{ grafana_image }}"
+            source: pull
+            force_source: yes
+
       roles:
-         - { role: username.rolename, x: 42 }
+         - { role: swarm_grafana }
 
 License
 -------
