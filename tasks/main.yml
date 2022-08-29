@@ -1,0 +1,57 @@
+---
+# tasks file for swarm_grafana
+
+- name: create Grafana group
+  group:
+    name: grafana
+    gid: "{{ grafana_gid }}"
+    state: present
+
+- name: create Grafana user
+  user:
+    name: grafana
+    uid: "{{ grafana_uid }}"
+    home: "{{ grafana_datadir }}"
+
+- name: Create Grafana data folder
+  file:
+    path: "{{ grafana_datadir }}"
+    state: directory
+    owner: grafana
+    group: grafana
+
+- name: Add grafana admin password secret
+  run_once: True
+  delegate_to: "{{ docker_swarm_initial_master }}" # Could be any swarm node
+  docker_secret:
+    name: admin_password
+    data: "{{ grafana_admin_passwd }}"
+    state: present
+
+- name: Grafana
+  run_once: True
+  delegate_to: "{{ docker_swarm_initial_master }}" # Could be any swarm node
+  docker_swarm_service:
+    name: Grafana
+    user: grafana  # uid 472 as seen in the Dockerfile, and docs.
+    image: "{{ grafana_image }}"
+    replicas: 1
+    networks:
+      - "{{ grafana_network }}"
+    publish:
+      - published_port: "{{ grafana_published_port }}"
+        target_port: "{{ grafana_target_port }}"
+        protocol: tcp
+    placement:
+      constraints:
+        - "node.hostname=={{ grafana_placement_constraint_host }}"
+    mounts:
+      - source: "{{ grafana_datadir }}"
+        target: /var/lib/grafana
+        type: bind
+    env:
+      "{{ grafana_env_params }}"
+    secrets:
+      - secret_name: admin_password
+        filename: "/run/secrets/admin_password"
+        uid: "{{ grafana_uid | string}}"

@@ -1,0 +1,13 @@
+---
+
+grafana_placement_constraint_host: docker3
+grafana_published_port: 3000
+grafana_target_port: 3000
+grafana_image: grafana/grafana:latest
+grafana_datadir: /srv/grafana-data
+grafana_network: monitoring_network
+grafana_env_params: []
+
+# The uid and gid 472 is set in the Dockerfile
+grafana_uid: 472
+grafana_gid: 472
